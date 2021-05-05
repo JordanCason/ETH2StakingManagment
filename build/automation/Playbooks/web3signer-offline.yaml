@@ -1,0 +1,306 @@
+#https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elastic-stack-on-ubuntu-20-04
+#################################################
+######### setup web3signer-offline ##############
+#################################################
+---
+- hosts: web3signer
+  vars_prompt:
+    - name: lukspassword
+      prompt: luks drive password, only needed in production
+      private: yes
+
+    - name: productioncheck
+      prompt: If Production run type Production in all caps else leave blank
+
+  become: true
+
+  tasks:
+
+    - assert:
+        that: productioncheck == 'PRODUCTION' or deployment_environment == "dev"
+        success_msg: Running in {{deployment_environment}}
+
+    - name: Create Teku User
+      user:
+        name: teku
+        shell: /bin/false
+        create_home: true
+
+    - name: Create empty file for one-time jobs
+      changed_when: False
+      file:
+        path: "/etc/onetime.conf"
+        state: touch
+
+    - shell: cat /etc/onetime.conf
+      changed_when: False
+      register: onetime
+
+    - name: Git checkout web3signer
+      delegate_to: 127.0.0.1
+      git:
+        repo: https://github.com/Consensys/web3signer.git
+        dest: ../files/web3signer-src
+        version: "{{ web3signer_commit }}"
+        recursive: no
+          
+    - name: BUILD - Build web3signer 
+      delegate_to: 127.0.0.1
+      args:
+        chdir: ../files/web3signer-src
+        creates: ../files/web3signer-src/build
+      shell: "./gradlew build -x test --console plain"
+
+    - name: rename to web3signer-src.tar.gz
+      delegate_to: 127.0.0.1
+      args:
+        chdir: ../files/web3signer-src/build/distributions
+        creates: ../files/web3signer-src/build/distributions/web3signer.tar.gz
+      shell: mv web3signer*.tar.gz web3signer.tar.gz
+
+    - name: Copy web3signer.tar.gz to keybox
+      copy:
+        src: ../files/web3signer-src/build/distributions/web3signer.tar.gz
+        dest: /home/nonya
+        owner: nonya
+        group: nonya
+        mode: 0755
+
+    - name: Unpack web3signer.tar.gz
+      args:
+        chdir: /home/nonya
+        creates: /home/teku/web3signer
+      shell: tar -xzf web3signer.tar.gz --one-top-level=/home/teku/web3signer --strip-components 1
+
+    - name: Change file ownership, group and permissions
+      file:
+        path: /home/teku/web3signer
+        owner: teku
+        group: teku
+        mode: '0775'
+        recurse: true
+
+    - name: deleate remote web3signer.tar.gz
+      file:
+        path: /home/nonya/web3signer.tar.gz 
+        state: absent
+
+#################################################
+############## setup postgress #################
+#################################################
+
+    - name: POSTGRESS - Set password for postgress
+      when: "'initdatabase' not in onetime.stdout_lines"
+      command: "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD '{{ postgres_password }}'\""
+      args:
+        warn: false
+
+    - name: POSTGRESS - Create web3signer database
+      when: "'initdatabase' not in onetime.stdout_lines"
+      command: "sudo -u postgres createdb web3signer"
+      register: command_result
+      failed_when:
+        - "'ERROR' not in command_result.stderr"
+        - "command_result.stderr != ''"
+
+    - name: POSTGRESS - Migrat V1__initial.sql
+      when: "'initdatabase' not in onetime.stdout_lines"
+      expect:
+        command: > 
+          sudo -u postgres psql --echo-all --host=localhost --port=5432 --dbname=web3signer --username=postgres
+          -f /home/nonya/web3signer-src/slashing-protection/src/main/resources/migrations/postgresql/V1__initial.sql
+        responses:
+          (?i)Password for user postgres: "{{ postgres_password }}"
+
+    - name: POSTGRESS - Migrat V2__removeUniqueConstraints.sql
+      when: "'initdatabase' not in onetime.stdout_lines"
+      expect:
+        command: > 
+          sudo -u postgres psql --echo-all --host=localhost --port=5432 --dbname=web3signer --username=postgres
+          -f /home/nonya/web3signer-src/slashing-protection/src/main/resources/migrations/postgresql/V2__removeUniqueConstraints.sql
+        responses:
+          (?i)Password for user postgres: "{{ postgres_password }}"
+
+    - name: POSTGRESS - Migrat V3__addLowWatermark.sql
+      when: "'initdatabase' not in onetime.stdout_lines"
+      expect:
+        command: > 
+          sudo -u postgres psql --echo-all --host=localhost --port=5432 --dbname=web3signer --username=postgres
+          -f /home/nonya/web3signer-src/slashing-protection/src/main/resources/migrations/postgresql/V3__addLowWatermark.sql
+        responses:
+          (?i)Password for user postgres: "{{ postgres_password }}"
+
+    - name: POSTGRESS - Migrat V4__addGenesisValidatorsRoot.sql
+      when: "'initdatabase' not in onetime.stdout_lines"
+      expect:
+        command: > 
+          sudo -u postgres psql --echo-all --host=localhost --port=5432 --dbname=web3signer --username=postgres
+          -f /home/nonya/web3signer-src/slashing-protection/src/main/resources/migrations/postgresql/V4__addGenesisValidatorsRoot.sql
+        responses:
+          (?i)Password for user postgres: "{{ postgres_password }}"
+
+    - name: POSTGRESS - Add initdatabase line to onetime.conf
+      when: "'initdatabase' not in onetime.stdout_lines"
+      lineinfile:
+        path: "/etc/onetime.conf"
+        line: initdatabase
+          
+    #################################################
+    ######## Install web3signer ###########
+    #################################################
+            
+
+    - name: BUILD - Create a symbolic link to web3signer
+      file:
+        src: /home/teku/web3signer/bin/web3signer
+        dest: /usr/local/bin/web3signer
+        state: link
+
+    - name: BUILD - Copy web3signer-config.yaml config to keybox
+      copy:
+        src: "../files/{{ deployment_environment }}/web3signer-config.yaml"
+        dest: /home/teku/web3signer-config.yaml
+        owner: teku
+        group: teku
+        mode: 0644
+
+    - name: BUILD - Copy web3signer.service to keybox
+      copy:
+        src: "../files/{{ deployment_environment }}/web3signer.service"
+        dest: /etc/systemd/system/web3signer.service
+        mode: 0644
+
+    - name: Create keys directory to mount LUKS drive into
+      file:
+        path: /home/teku/keys
+        state: directory
+        mode: '0755'
+
+    #################################################
+    ############## TekuKeyConfig copy  ###############
+    #################################################
+    
+    - name: DISKS - Cryptsetup map from ubuntu--vg-lukskeys to lukskeys
+      when: deployment_environment == "prod"
+      expect:
+        command: > 
+          cryptsetup open /dev/mapper/ubuntu--vg-lukskeys lukskeys --type luks
+        responses:
+          (?i)Enter passphrase for: "{{ lukspassword }}"
+ 
+    - name: DISKS - Mount lukskeys to keys directory 
+      when: deployment_environment == "prod"
+      shell: mount /dev/mapper/lukskeys /home/teku/keys
+
+    - name: Copy TekuKeyConfig with owner and permissions
+      copy:
+        src: "{{ teku_key_config }}"
+        dest: /home/teku/keys
+        owner: teku
+        group: teku
+        mode: '0644'
+
+    - name: Reload web3signer
+      service:
+        name: web3signer
+        state: restarted
+
+    - name: Pause for 10 seconds for the signer to grab keys
+      pause:
+        seconds: 5
+
+    - name: DISKS - Unmount keys
+      when: deployment_environment == "prod"
+      shell: umount /home/teku/keys
+
+    - name: DISKS - Close lukskeys encrypted drive 
+      when: deployment_environment == "prod"
+      shell: cryptsetup close /dev/mapper/lukskeys
+
+    #################################################
+    ############## configure netplan  ###############
+    #################################################
+
+    - name: NETPLAN - Capture files to delete
+      when: enable_netplan == "true"
+      find:
+        paths: /etc/netplan
+        file_type: file
+        excludes: 
+          - "00-web3signer-netplan.yaml"
+      register: found_files
+
+    - name: NETPLAN - Remove default netplan
+      when: enable_netplan == "true"
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ found_files['files'] }}"
+
+    - name: NETPLAN - Copy web3signer-netplan.yaml to keybox
+      when: deployment_environment == "prod"
+      copy:
+        src: "../files/{{ deployment_environment }}/web3signer-netplan.yaml"
+        dest: /etc/netplan/00-web3signer-netplan.yaml
+        mode: 0644
+
+    #################################################
+    ############## configure ssh  ###############
+    #################################################
+
+
+    - name: SSH - Set ssh port
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port'
+        line: 'Port {{ ssh_port }}'
+
+    - name: SSH - Set PasswordAuthentication no
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+
+    - name: SSH - Set PermitRootLogin no
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+
+    ################################################################
+    ############## enable connection braking changes ###############
+    ################################################################
+    
+    - name: sleep for 5 seconds then apply netplan
+      when: enable_netplan == "true"
+      shell: (sleep 5 && netplan apply)&
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

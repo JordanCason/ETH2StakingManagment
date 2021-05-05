@@ -1,0 +1,29 @@
+[
+    {
+        "amount": 32000000000,
+        "deposit_data_root": "a104610ce1b16942b31dab182341a5d8d3009675e410a62268278b086daac7b2",
+        "deposit_message_root": "8a211e99bbcb515df5b6a345ab489a3f83fe059e16b5021b924aece70ce0ceff",
+        "fork_version": "00002009",
+        "pubkey": "91b525782a578fff6c051da0277cb61a5848ab5f57bbacf775e072aa4baed8ed5e001297b6b5dd19b67b10b3687f2d6a",
+        "signature": "af9c58a1a16cb7d82db2cf7da10298c04e00c570b3baf1fea56f1cc878c4f4e01d601f6be1898e980b2b26546e3a0bb305b70a9909505d34ea90763b7970897ecb719d243ab442cea038161ae50f7772ee1dea14218ec360d9658e3128fecaec",
+        "withdrawal_credentials": "00787cfa977e32ca69d92d13f7e3722704285390dc1586d784a622b45e6f82d5"
+    },
+    {
+        "amount": 32000000000,
+        "deposit_data_root": "6df93a60e7381d62566ced3be0e1f248b5e553f71ead407cd0ffe64ff6b80832",
+        "deposit_message_root": "ff104d0fdb8396b7578a0feca9730bd144650c218c89ebbbb9d9006ed2dedea0",
+        "fork_version": "00002009",
+        "pubkey": "919d2450546a43ffd827b64183097883387bc266674838c772c94661f2c5370eaa3e98e481ad7b53759e89b79c25e222",
+        "signature": "ac58f99263ea42f90337bd79b00767ebe9e850c7256d8fe99b1b8f45eb42a462451f2f518ea932491267df24134cceb60f0a950433657a34efaee4e36db697f2b34d2f31eb2ca6572d47b5acef48db6a50bda91367aee9d88634d77fa6a831cb",
+        "withdrawal_credentials": "00787cfa977e32ca69d92d13f7e3722704285390dc1586d784a622b45e6f82d5"
+    },
+    {
+        "amount": 32000000000,
+        "deposit_data_root": "ff7cc2e6dbcae732b20859ddcf83b0bdbfbf2ca8f8e294fafb34cc5464cf577b",
+        "deposit_message_root": "75c92cf71e0e5d80b10084a87ce4732462cb5b4bf6be5f4844099a5d837942cf",
+        "fork_version": "00002009",
+        "pubkey": "a2deb212e67c90de049a2dfce66202052cf89405cbbfffd3f99fcb090a3e3025a4e4b85d07a6328d87cba3b08cb11874",
+        "signature": "a9fb80179d7da3e6547aa6c5fe10f77f4dec6dca102223dca40c7f6984de3cf0fc855deca7a33ac0cc6ec8d1390129f70557f59956dcaaba7293ccfa05bf6f7b870510ea52342d415420df62cdb8f1dfedca0dee80f024c93f560f27a11ecef3",
+        "withdrawal_credentials": "00787cfa977e32ca69d92d13f7e3722704285390dc1586d784a622b45e6f82d5"
+    }
+]

@@ -1,0 +1,100 @@
+#https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elastic-stack-on-ubuntu-20-04
+#################################################
+######### setup web3signer-offline ##############
+#################################################
+---
+- hosts: web3signer
+  gather_facts : no
+  vars_prompt:
+    - name: lukspassword
+      prompt: luks drive password, only needed in production
+      private: yes
+
+    - name: productioncheck
+      prompt: If Production run type Production in all caps else leave blank
+
+  become: true
+
+  tasks:
+
+    - assert:
+        that: productioncheck == 'PRODUCTION' or deployment_environment == "dev"
+        success_msg: Running in {{deployment_environment}}
+
+    #################################################
+    ############## TekuKeyConfig copy  ###############
+    #################################################
+    
+    - name: BUILD - Copy web3signer-config.yaml config to keybox
+      copy:
+        src: "../files/{{ deployment_environment }}/web3signer-config.yaml"
+        dest: /home/teku/web3signer-config.yaml
+        owner: teku
+        group: teku
+        mode: 0644
+
+    - name: param3
+      set_fact:
+        driveLocation: "{{ '/dev/mapper/ubuntu--vg-lukskeys' if deployment_environment == 'prod' else '/dev/sdb' }}"
+
+          # - debug: var="driveLocation"
+
+    - name: DISKS - Cryptsetup map from ubuntu--vg-lukskeys to lukskeys
+      expect:
+        command: > 
+          cryptsetup open {{ driveLocation }} lukskeys --type luks
+        responses:
+          (?i)Enter passphrase for: "{{ lukspassword }}"
+      register: cryptsetup
+      ignore_errors: yes
+
+        #- debug: msg="{{ cryptsetup }}"
+
+    - name: Mount luks to keys directory 
+      shell: mount /dev/mapper/lukskeys /home/teku/keys
+      args:
+        warn: false
+      ignore_errors: yes
+
+    - name: Recursively remove directory TekuKeyConfig
+      file:
+        path: /home/teku/keys/TekuKeyConfig
+        state: absent
+
+    - name: Copy TekuKeyConfig with owner and permissions
+      copy:
+        src: "{{ teku_key_config }}"
+        dest: /home/teku/keys
+        owner: teku
+        group: teku
+        mode: '0644'
+
+    - name: Reload web3signer
+      service:
+        name: web3signer
+        state: restarted
+
+    - name: Unmount keys
+      shell: timeout 10 tail -F /var/log/syslog -n 0 || /bin/true
+      register: web3log
+
+        #- set_fact:
+        #    myvalue: "{{ web3log.stdout | regex_search('Loading signer configuration files completed with (\\d)','\\1') }}"
+
+          #- debug:
+          #    var: myvalue
+
+    - debug:
+        msg: "{{ web3log.stdout_lines }}"
+
+    - name: DISKS - Unmount keys
+      shell: umount /home/teku/keys
+
+    - name: DISKS - Close lukskeys encrypted drive 
+      shell: cryptsetup close /dev/mapper/lukskeys
+
+
+
+
+
+

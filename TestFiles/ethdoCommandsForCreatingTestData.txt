@@ -1,0 +1,11 @@
+
+// create wallet 
+ethdo wallet create --wallet="Personal wallet" --type="hd" --wallet-passphrase="testtest" --mnemonic="pipe model sustain file dwarf farm mass damp room decorate educate obtain alert oak cupboard soup flavor wheat naive dynamic bracket life waste clerk testtest" --allow-weak-passphrases
+
+// create withdraw
+ethdo account create --account="Personal wallet/withdraw" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/0/0"
+
+// create validators
+ethdo account create --account="Personal wallet/0" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/0/0/0"
+ethdo account create --account="Personal wallet/1" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/1/0/0"
+ethdo account create --account="Personal wallet/2" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/2/0/0"

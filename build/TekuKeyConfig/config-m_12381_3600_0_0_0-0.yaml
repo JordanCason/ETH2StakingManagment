@@ -1,0 +1,4 @@
+type: "file-keystore"
+keyType: "BLS"
+keystoreFile: "validators/keystore-m_12381_3600_0_0_0-0.json"
+keystorePasswordFile: "passwords/keystore-m_12381_3600_0_0_0-0.pass"

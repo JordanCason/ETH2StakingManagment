@@ -1,0 +1,192 @@
+#################################################
+############## setup web3signer #################
+#################################################
+# - debug: msg="{{ enable_netplan }}"
+---
+- hosts: teku
+  become: true
+
+  tasks:
+    - name: Create teku user
+      user:
+        name: teku
+        shell: /bin/false
+        create_home: true
+
+    - name: Create empty file for one-time jobs
+      changed_when: False
+      file:
+        path: "/etc/onetime.conf"
+        state: touch
+          
+    - name: Read in onetime.conf
+      shell: cat /etc/onetime.conf
+      changed_when: False
+      register: onetime
+          
+    - name: Create mount point for chaindata
+      file:
+        path: /home/teku/chaindata
+        state: directory
+        owner: teku
+        group: teku
+        mode: '0755'
+          
+    - name: Create log directory
+      file:
+        path: /home/teku/logs
+        state: directory
+        owner: teku
+        group: teku
+        mode: '0755'
+
+    - name: build teku
+      become_user: nonya
+      args:
+        chdir: /home/nonya/teku-src
+        creates: /home/nonya/teku-src/build
+      shell: "./gradlew distTar installDist --console plain"
+
+    - name: Create a symbolic link to web3signer
+      file:
+        src: /home/nonya/teku-src/build/install/teku/bin/teku
+        dest: /usr/local/bin/teku
+        state: link
+
+    #################################################
+    ############## format vbox disk   ###############
+    #################################################
+    # will only format vbox disk if in the dev enviernment
+    # will only exicute once 
+
+    - name: VBOX - format vb disk
+      when:  "'InitFormatDisk' not in onetime.stdout_lines and deployment_environment == 'dev'"
+      command: "sudo mkfs.ext4 -L chaindata /dev/sdb"
+
+    - name: VBOX - line insert
+      when: "'InitFormatDisk' not in onetime.stdout_lines and deployment_environment == 'dev'"
+      lineinfile:
+        path: "/etc/onetime.conf"
+        line: InitFormatDisk
+
+    #################################################
+
+    - name: DISKS - add disk entry to /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^#?LABEL=chaindata'
+        line: 'LABEL=chaindata /home/teku/chaindata ext4 defaults 1 1'
+
+    - name: DISKS - mount everything in fstab
+      changed_when: False
+      command: "sudo mount -a"
+      args:
+        warn: false
+
+    - name: copy teku-config.yaml 
+      copy:
+        src: "../files/{{ deployment_environment }}/teku-config.yaml"
+        dest: /home/teku/teku-config.yaml
+        owner: teku
+        group: teku
+        mode: 0644
+
+    - name: Copy teku.service
+      copy:
+        src: "../files/{{ deployment_environment }}/teku.service"
+        dest: /etc/systemd/system/teku.service
+        mode: 0644
+
+    - name: Restart teku service
+      service:
+        name: teku
+        state: restarted
+        enabled: yes
+
+    #################################################
+    ############## configure netplan  ###############
+    #################################################
+
+    - name: NETPLAN - Capture files to delete
+      when: enable_netplan == "true"
+      find:
+        paths: /etc/netplan
+        file_type: file
+        excludes: 
+          - "00-teku-netplan.yaml"
+      register: found_files
+
+    - name: NETPLAN - Remove default netplan
+      when: enable_netplan == "true"
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ found_files['files'] }}"
+
+    - name: NETPLAN - Copy teku-netplan.yaml
+      copy:
+        src: "../files/{{ deployment_environment }}/teku-netplan.yaml"
+        dest: /etc/netplan/00-teku-netplan.yaml
+        mode: 0644
+
+    #################################################
+    ############## configure ssh  ###############
+    #################################################
+
+    - name: SSH - Set authorized keys
+      authorized_key:
+        user: nonya
+        state: present
+        key: "{{ lookup('file', '../files/{{ deployment_environment }}/{{ public_key_file }}') }}"
+
+    - name: SSH - Set SSH port
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port'
+        line: 'Port {{ ssh_port }}'
+
+    - name: SSH - Set PasswordAuthentication no
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+
+    - name: SSH - Set PermitRootLogin no
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+
+    ################################################################
+    ############## enable connection braking changes ###############
+    ################################################################
+
+    - name: sleep for 5 seconds then apply netplan
+      when: enable_netplan == "true"
+      shell: (sleep 5 && netplan apply)&
+
+    - name: sleep for 6 seconds restart ssh
+      when: restart_ssh == "true"
+      shell: (systemctl restart ssh.service)&
+        
+    - name: sleep for 10 enable and start teku service
+      when: enable_teku == "true"
+      shell: (systemctl daemon-reload && systemctl enable teku.service  && systemctl start teku.service)&
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

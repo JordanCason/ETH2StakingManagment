@@ -1,0 +1,30 @@
+
+// create wallet 
+ethdo wallet create --wallet="Personal wallet" --type="hd" --wallet-passphrase="testtest" --mnemonic="pipe model sustain file dwarf farm mass damp room decorate educate obtain alert oak cupboard soup flavor wheat naive dynamic bracket life waste clerk testtest" --allow-weak-passphrases
+
+// create withdraw
+ethdo account create --account="Personal wallet/withdraw" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/0/0"
+
+// create validators
+ethdo account create --account="Personal wallet/0" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/0/0/0"
+ethdo account create --account="Personal wallet/1" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/1/0/0"
+ethdo account create --account="Personal wallet/2" --wallet-passphrase="testtest" --allow-weak-passphrases --passphrase="testtest" --path="m/12381/3600/2/0/0"
+
+
+
+2057  cat 7519a593-a7ce-487a-8018-e71045425920 | python -m json.tool
+ 2058  ethdo validator depositdata --help
+ 2059  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/0" --depositvalue="32 ether" --forkversion="00002009"
+ 2060  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/0" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest"
+ 2061  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/0" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --launchpad
+ 2062  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/0" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --launchpad | python -m json.tool
+ 2063  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/0" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --launchpad | python -m json.tool >> ethdoLaunchpadOutput.txt
+ 2064  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/1" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --launchpad | python -m json.tool >> ethdoLaunchpadOutput.txt
+ 2065  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/2" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --launchpad | python -m json.tool >> ethdoLaunchpadOutput.txt
+ 2066  ls
+ 2067  cat ethdoLaunchpadOutput.txt 
+ 2068  vim ethdoLaunchpadOutput.txt 
+ 2069  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/0" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --raw
+ 2070  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/0" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --raw >> ethdoRawOutput.txt
+ 2071  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/1" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --raw >> ethdoRawOutput.txt
+ 2072  ethdo validator depositdata --withdrawalpubkey="9662b2c71f9815bd5bce053b84a287c357076667921ade765df96e44bf382af45c01a0df0a6faa47685620d19e04cc45" --validatoraccount="Personal wallet/2" --depositvalue="32 ether" --forkversion="00002009" --passphrase="testtest" --raw >> ethdoRawOutput.txt

@@ -1,0 +1,40 @@
+#################################################
+######### Update Teku Config ##############
+#################################################
+---
+- hosts: teku
+  become: true
+  gather_facts : no
+
+  tasks:
+
+    - debug:
+        msg: "{{ teku_pubkey_list }}"
+
+    - name: Rex Replace validator public keys in config file
+      delegate_to: 127.0.0.1
+      replace:
+        dest: ../files/dev/teku-config.yaml
+        regexp: "validators-external-signer-public-keys: \\[[^\\]]*\\]"
+        replace: "validators-external-signer-public-keys: {{lookup('file', teku_pubkey_list) }}"
+        backup: true
+
+    - name: copy teku-config.yaml 
+      copy:
+        src: "../files/{{ deployment_environment }}/teku-config.yaml"
+        dest: /home/teku/teku-config.yaml
+        owner: teku
+        group: teku
+        mode: 0644
+
+    - name: Reload teku
+      service:
+        name: teku
+        state: restarted
+      
+    - name: Unmount keys
+      shell: timeout 10 tail -F /var/log/syslog -n 10 || /bin/true
+      register: tekulog
+
+    - debug:
+        msg: "{{ tekulog.stdout_lines }}"

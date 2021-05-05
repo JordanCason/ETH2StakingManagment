@@ -1,0 +1,6 @@
+ 
+go run ./ create validators --bip39Seed "treat cup avocado hair insane middle enjoy piano erosion venture media public cluster outdoor together tomato emotion equip crush rival junior volume oven pill" --keystorePasswords test --ForkVersion 0x00000001 --Count 5
+
+
+# used for the Pyrmount
+go run ./ create validators --bip39Seed "pipe model sustain file dwarf farm mass damp room decorate educate obtain alert oak cupboard soup flavor wheat naive dynamic bracket life waste clerk" --keystorePasswords testtest --bip39Password testtest --ForkVersion 0x00002009 --Count 3
